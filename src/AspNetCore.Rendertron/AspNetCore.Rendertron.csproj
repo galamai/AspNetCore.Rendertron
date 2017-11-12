@@ -13,6 +13,8 @@
     <PackageProjectUrl>https://github.com/galamai/AspNetCore.Rendertron</PackageProjectUrl>
     <RepositoryUrl>https://github.com/galamai/AspNetCore.Rendertron</RepositoryUrl>
     <PackageTags>asp.net core, rendertron</PackageTags>
+    <Authors>Ievgen Galamai</Authors>
+    <Company>Ievgen Galamai</Company>
   </PropertyGroup>
 
   <ItemGroup>
