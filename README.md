@@ -1,5 +1,5 @@
 # AspNetCore.Rendertron
-ASP.net core middleware for Google Rendertron.
+ASP.net core middleware for GoogleChrome Rendertron [https://github.com/GoogleChrome/rendertron](https://github.com/GoogleChrome/rendertron).
 
 # NuGet
 `Install-Package Galamai.AspNetCore.Rendertron`

@@ -6,7 +6,7 @@
     <Version>0.0.1</Version>
     <AssemblyVersion>0.0.1.0</AssemblyVersion>
     <FileVersion>0.0.1.0</FileVersion>
-    <Description>ASP.net core middleware for Google Rendertron.</Description>
+    <Description>ASP.net core middleware for GoogleChrome Rendertron.</Description>
     <Copyright>Ievgen Galamai</Copyright>
     <PackageId>Galamai.AspNetCore.Rendertron</PackageId>
     <PackageLicenseUrl>https://github.com/galamai/AspNetCore.Rendertron/blob/master/LICENSE</PackageLicenseUrl>
@@ -15,6 +15,7 @@
     <PackageTags>asp.net core, rendertron</PackageTags>
     <Authors>Ievgen Galamai</Authors>
     <Company>Ievgen Galamai</Company>
+    <NeutralLanguage />
   </PropertyGroup>
 
   <ItemGroup>
