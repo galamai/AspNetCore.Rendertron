@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -22,7 +23,7 @@ namespace AspNetCore.Rendertron
             _proxyUrl = options.ProxyUrl.EndsWith("/") ? options.ProxyUrl : options.ProxyUrl + "/";
         }
 
-        public async Task Invoke(HttpContext context)
+        public async Task Invoke(HttpContext context, IHttpClientAccessor httpClientAccessor)
         {
             var request = context.Request;
 
@@ -41,20 +42,19 @@ namespace AspNetCore.Rendertron
                 renderUrl += $"{(string.IsNullOrEmpty(request.QueryString.ToString()) ? "?" : "&")}wc-inject-shadydom=true";
             }
 
-            using (var httpClient = new HttpClient())
+            var httpClient = httpClientAccessor.HttpClient;
+
+            using (var tokenSource = new CancellationTokenSource(_options.Timeout))
             {
-                using (var tokenSource = new CancellationTokenSource(_options.Timeout))
+                try
                 {
-                    try
-                    {
-                        var response = await httpClient.GetAsync(renderUrl, tokenSource.Token);
-                        var result = await response.Content.ReadAsStringAsync();
-                        await context.Response.WriteAsync(result);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        context.Response.StatusCode = 408;
-                    }
+                    var response = await httpClient.GetAsync(renderUrl, tokenSource.Token);
+                    var result = await response.Content.ReadAsStringAsync();
+                    await context.Response.WriteAsync(result);
+                }
+                catch (OperationCanceledException)
+                {
+                    context.Response.StatusCode = 408;
                 }
             }
         }
