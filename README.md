@@ -7,9 +7,24 @@ ASP.net core middleware for GoogleChrome Rendertron [https://github.com/GoogleCh
 ## Use
 In `Startup.cs`
 
+Configure rendertron services
+
+    public void ConfigureServices(IServiceCollection services)
+    {
+        // Add rendertron services
+        services.AddRendertron(options =>
+        {
+            // use http compression
+            options.AcceptCompression = true;
+        });
+    }
+    
+Configure middleware
+
     public void Configure(IApplicationBuilder app, IHostingEnvironment env)
     {
         ...
+        // Use Rendertron middleware
         app.UseRendertron(proxyUrl: "http://rendertron:8080/render/");
         ...
         app.UseMvc();
@@ -20,6 +35,7 @@ In `Startup.cs`
     public void Configure(IApplicationBuilder app, IHostingEnvironment env)
     {
         ...
+        // Use Rendertron middleware
         app.UseRendertron(new RendertronMiddlewareOptions()
         {
             ProxyUrl = "http://rendertron:8080/render/",
@@ -29,7 +45,13 @@ In `Startup.cs`
         app.UseMvc();
     }
 
-## Configuration
+## Services configuration
+
+| Property | Default | Description |
+| -------- | ------- | ----------- |
+| `AcceptCompression` | `false` | Add http compression suppor for Rendertron proxy client. |
+
+## Middleware configuration
 
 `RendertronMiddlewareOptions`
 
