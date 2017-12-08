@@ -26,8 +26,8 @@ namespace AspNetCore.Rendertron
 
         public string ProxyUrl { get; set; }
         public List<string> UserAgents { get; set; } = new List<string>(BotUserAgents);
-        public bool UseForEmptyUserAgents { get; set; }
         public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(11);
         public bool InjectShadyDom { get; set; }
+        public TimeSpan HttpCacheMaxAge { get; set; } = TimeSpan.Zero;
     }
 }

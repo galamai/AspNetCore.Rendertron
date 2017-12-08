@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,48 +15,98 @@ namespace AspNetCore.Rendertron
     {
         private readonly RequestDelegate _next;
         private readonly RendertronMiddlewareOptions _options;
+        private readonly IHttpClientAccessor _httpClientAccessor;
         private readonly string _proxyUrl;
+        private readonly CacheControlHeaderValue _cacheControlHeaderValue;
+        private readonly string[] _varyHeaders;
 
-        public RendertronMiddleware(RequestDelegate next, RendertronMiddlewareOptions options)
+        public RendertronMiddleware(
+            RequestDelegate next,
+            RendertronMiddlewareOptions options,
+            IHttpClientAccessor httpClientAccessor)
         {
             _next = next;
             _options = options;
+            _httpClientAccessor = httpClientAccessor;
+
             _proxyUrl = options.ProxyUrl.EndsWith("/") ? options.ProxyUrl : options.ProxyUrl + "/";
+            _cacheControlHeaderValue = new CacheControlHeaderValue()
+            {
+                Public = true,
+                MaxAge = _options.HttpCacheMaxAge
+            };
+            _varyHeaders = new string[] { "Accept-Encoding" };
         }
 
-        public async Task Invoke(HttpContext context, IHttpClientAccessor httpClientAccessor)
+        public Task Invoke(HttpContext context)
+        {
+            var cancellationToken = context.RequestAborted;
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var userAgent = context.Request.Headers["User-agent"].ToString().ToLowerInvariant();
+
+            if (IsNeedRender(userAgent, cancellationToken))
+            {
+                return InvokeRender(context, cancellationToken);
+            }
+            else
+            {
+                return _next(context);
+            }
+        }
+
+        private bool IsNeedRender(string userAgent, CancellationToken cancellationToken)
+        {
+            return _options.UserAgents.Any(x =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return userAgent.Contains(x.ToLowerInvariant());
+            });
+        }
+
+        private async Task InvokeRender(HttpContext context, CancellationToken cancellationToken)
         {
             var request = context.Request;
-
-            var userAgent = request.Headers["User-agent"].ToString().ToLowerInvariant();
-
-            if (!(userAgent == string.Empty && _options.UseForEmptyUserAgents) && !_options.UserAgents.Any(x => userAgent.Contains(x.ToLowerInvariant())))
-            {
-                await _next(context);
-                return;
-            }
-
             var incomingUrl = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString}";
+
+            var result = await RenderAsync(incomingUrl, cancellationToken);
+            AddHttpCacheHeaders(context.Response);
+            context.Response.StatusCode = result.statusCode;
+            await context.Response.WriteAsync(result.html, cancellationToken);
+        }
+
+        private async Task<(string html, int statusCode)> RenderAsync(string incomingUrl, CancellationToken cancellationToken)
+        {
             var renderUrl = $"{_proxyUrl}{Uri.EscapeUriString(incomingUrl)}";
             if (_options.InjectShadyDom)
             {
-                renderUrl += $"{(string.IsNullOrEmpty(request.QueryString.ToString()) ? "?" : "&")}wc-inject-shadydom=true";
+                renderUrl += $"{(incomingUrl.Contains('?') ? "&" : "?")}wc-inject-shadydom=true";
             }
-
-            var httpClient = httpClientAccessor.HttpClient;
 
             using (var tokenSource = new CancellationTokenSource(_options.Timeout))
             {
-                try
+                cancellationToken.Register(() => tokenSource.Cancel());
+
+                var response = await _httpClientAccessor.HttpClient.GetAsync(renderUrl, tokenSource.Token);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    var response = await httpClient.GetAsync(renderUrl, tokenSource.Token);
-                    var result = await response.Content.ReadAsStringAsync();
-                    await context.Response.WriteAsync(result);
+                    var html = await response.Content.ReadAsStringAsync();
+                    return (html, 200);
                 }
-                catch (OperationCanceledException)
+                else
                 {
-                    context.Response.StatusCode = 408;
+                    return (response.ReasonPhrase, (int)response.StatusCode);
                 }
+            }
+        }
+
+        private void AddHttpCacheHeaders(HttpResponse httpResponse)
+        {
+            if (_options.HttpCacheMaxAge > TimeSpan.Zero)
+            {
+                httpResponse.GetTypedHeaders().CacheControl = _cacheControlHeaderValue;
+                httpResponse.Headers[HeaderNames.Vary] = _varyHeaders;
             }
         }
     }

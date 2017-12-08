@@ -20,6 +20,9 @@ namespace WebApplication
                 // use http compression
                 options.AcceptCompression = true;
             });
+
+            // Add response caching
+            services.AddResponseCaching();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -29,10 +32,13 @@ namespace WebApplication
                 app.UseDeveloperExceptionPage();
             }
 
+            // Response cache middleware
+            app.UseResponseCaching();
+
             app.UseStaticFiles();
 
             // Use Rendertron middleware
-            app.UseRendertron(proxyUrl: "https://render-tron.appspot.com/render/");
+            app.UseRendertron(proxyUrl: "http://localhost/render/");
 
             // Redirect all requests to the index.html
             var options = new RewriteOptions();
