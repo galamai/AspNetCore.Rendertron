@@ -69,10 +69,10 @@ namespace AspNetCore.Rendertron
             var request = context.Request;
             var incomingUrl = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString}";
 
-            var result = await RenderAsync(incomingUrl, cancellationToken);
+            var (html, statusCode) = await RenderAsync(incomingUrl, cancellationToken);
             AddHttpCacheHeaders(context.Response);
-            context.Response.StatusCode = result.statusCode;
-            await context.Response.WriteAsync(result.html, cancellationToken);
+            context.Response.StatusCode = statusCode;
+            await context.Response.WriteAsync(html, cancellationToken);
         }
 
         private async Task<(string html, int statusCode)> RenderAsync(string incomingUrl, CancellationToken cancellationToken)
