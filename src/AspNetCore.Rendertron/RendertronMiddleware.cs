@@ -29,7 +29,7 @@ namespace AspNetCore.Rendertron
             _options = options;
             _httpClientAccessor = httpClientAccessor;
 
-            _proxyUrl = options.ProxyUrl.EndsWith("/") ? options.ProxyUrl : options.ProxyUrl + "/";
+            _proxyUrl = options.ProxyUrl.TrimEnd('/') + '/';
             _cacheControlHeaderValue = new CacheControlHeaderValue()
             {
                 Public = true,
@@ -67,7 +67,8 @@ namespace AspNetCore.Rendertron
         private async Task InvokeRender(HttpContext context, CancellationToken cancellationToken)
         {
             var request = context.Request;
-            var incomingUrl = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString}";
+            var host = !String.IsNullOrWhiteSpace(_options.StaticHost) ? _options.StaticHost : request.Host.ToString();
+            var incomingUrl = $"{request.Scheme}://{host}{request.Path}{request.QueryString}";
 
             var (html, statusCode) = await RenderAsync(incomingUrl, cancellationToken);
             AddHttpCacheHeaders(context.Response);
