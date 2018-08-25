@@ -25,6 +25,7 @@ namespace AspNetCore.Rendertron
         };
 
         public string ProxyUrl { get; set; }
+        public string StaticHost { get; set; }
         public List<string> UserAgents { get; set; } = new List<string>(BotUserAgents);
         public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(11);
         public bool InjectShadyDom { get; set; }
