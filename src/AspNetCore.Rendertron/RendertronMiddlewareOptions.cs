@@ -29,5 +29,6 @@ namespace AspNetCore.Rendertron
         public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(11);
         public bool InjectShadyDom { get; set; }
         public TimeSpan HttpCacheMaxAge { get; set; } = TimeSpan.Zero;
+        public bool UseForEmptyUserAgents { get; set; }
     }
 }
