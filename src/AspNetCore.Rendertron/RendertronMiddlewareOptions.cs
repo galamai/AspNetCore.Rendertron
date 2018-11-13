@@ -21,7 +21,8 @@ namespace AspNetCore.Rendertron
             "showyoubot",
             "slackbot",
             "twitterbot",
-            "vkShare"
+            "vkShare",
+            "googlebot"
         };
 
         public string ProxyUrl { get; set; }
