@@ -57,7 +57,7 @@ namespace AspNetCore.Rendertron
 
         private bool IsNeedRender(string userAgent, CancellationToken cancellationToken)
         {
-            return _options.UserAgents.Any(x =>
+            return (_options.UseForEmptryUserAgents && string.IsNullOrEmptry(userAgent)) ||  _options.UserAgents.Any(x =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 return userAgent.Contains(x.ToLowerInvariant());
