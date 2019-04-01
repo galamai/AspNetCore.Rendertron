@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Rewrite;
 
@@ -17,6 +12,18 @@ namespace WebApplication
             // Add rendertron services
             services.AddRendertron(options =>
             {
+                // rendertron service url
+                options.RendertronUrl = "http://rendertron:3000/render/";
+
+                // proxy url for application
+                options.AppProxyUrl = "http://webapplication";
+
+                // prerender for firefox
+                //options.UserAgents.Add("firefox");
+
+                // inject shady dom
+                options.InjectShadyDom = true;
+                
                 // use http compression
                 options.AcceptCompression = true;
             });
@@ -38,7 +45,7 @@ namespace WebApplication
             app.UseStaticFiles();
 
             // Use Rendertron middleware
-            app.UseRendertron(proxyUrl: "http://localhost/render/");
+            app.UseRendertron();
 
             // Redirect all requests to the index.html
             var options = new RewriteOptions();

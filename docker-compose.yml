@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  webapplication:
+    image: ${DOCKER_REGISTRY-}webapplication
+    build:
+      context: .
+      dockerfile: samples/WebApplication/Dockerfile
+
+  rendertron:
+    image: rendertron
+    build:
+      context: .
+      dockerfile: src/Rendertron/Dockerfile

@@ -1,12 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace AspNetCore.Rendertron
@@ -14,40 +11,26 @@ namespace AspNetCore.Rendertron
     public class RendertronMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly RendertronMiddlewareOptions _options;
-        private readonly IHttpClientAccessor _httpClientAccessor;
-        private readonly string _proxyUrl;
-        private readonly CacheControlHeaderValue _cacheControlHeaderValue;
-        private readonly string[] _varyHeaders;
+        private readonly IRendertronClient _rendertronClient;
+        private readonly IOptionsMonitor<RendertronOptions> _optionsAccessor;
 
         public RendertronMiddleware(
             RequestDelegate next,
-            RendertronMiddlewareOptions options,
-            IHttpClientAccessor httpClientAccessor)
+            IRendertronClient rendertronClient,
+            IOptionsMonitor<RendertronOptions> optionsAccessor)
         {
             _next = next;
-            _options = options;
-            _httpClientAccessor = httpClientAccessor;
-
-            _proxyUrl = options.ProxyUrl.EndsWith("/") ? options.ProxyUrl : options.ProxyUrl + "/";
-            _cacheControlHeaderValue = new CacheControlHeaderValue()
-            {
-                Public = true,
-                MaxAge = _options.HttpCacheMaxAge
-            };
-            _varyHeaders = new string[] { "Accept-Encoding" };
+            _rendertronClient = rendertronClient;
+            _optionsAccessor = optionsAccessor;
         }
 
         public Task Invoke(HttpContext context)
         {
-            var cancellationToken = context.RequestAborted;
-            cancellationToken.ThrowIfCancellationRequested();
+            var options = _optionsAccessor.CurrentValue;
 
-            var userAgent = context.Request.Headers["User-agent"].ToString().ToLowerInvariant();
-
-            if (IsNeedRender(userAgent, cancellationToken))
+            if (IsNeedRender(context, options))
             {
-                return InvokeRender(context, cancellationToken);
+                return InvokeRender(context, options);
             }
             else
             {
@@ -55,58 +38,36 @@ namespace AspNetCore.Rendertron
             }
         }
 
-        private bool IsNeedRender(string userAgent, CancellationToken cancellationToken)
+        private bool IsNeedRender(HttpContext context, RendertronOptions options)
         {
-            return _options.UserAgents.Any(x =>
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                return userAgent.Contains(x.ToLowerInvariant());
-            });
+            var userAgent = context.Request.Headers["User-agent"].ToString().ToLowerInvariant();
+
+            return options.UserAgents.Any(x => userAgent.Contains(x.ToLowerInvariant()));
         }
 
-        private async Task InvokeRender(HttpContext context, CancellationToken cancellationToken)
+        private async Task InvokeRender(HttpContext context, RendertronOptions options)
         {
-            var request = context.Request;
-            var incomingUrl = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString}";
+            var cancellationToken = context.RequestAborted;
 
-            var (html, statusCode) = await RenderAsync(incomingUrl, cancellationToken);
-            AddHttpCacheHeaders(context.Response);
-            context.Response.StatusCode = statusCode;
-            await context.Response.WriteAsync(html, cancellationToken);
+            var response = await _rendertronClient
+                .RenderAsync(context.Request.GetDisplayUrl(), cancellationToken)
+                .ConfigureAwait(false);
+
+            AddHttpCacheHeaders(context.Response, options);
+            context.Response.StatusCode = (int)response.StatusCode;
+            await context.Response.WriteAsync(response.Result, cancellationToken);
         }
 
-        private async Task<(string html, int statusCode)> RenderAsync(string incomingUrl, CancellationToken cancellationToken)
+        private void AddHttpCacheHeaders(HttpResponse httpResponse, RendertronOptions options)
         {
-            var renderUrl = $"{_proxyUrl}{Uri.EscapeUriString(incomingUrl)}";
-            if (_options.InjectShadyDom)
+            if (options.HttpCacheMaxAge > TimeSpan.Zero)
             {
-                renderUrl += $"{(incomingUrl.Contains('?') ? "&" : "?")}wc-inject-shadydom=true";
-            }
-
-            using (var tokenSource = new CancellationTokenSource(_options.Timeout))
-            {
-                cancellationToken.Register(() => tokenSource.Cancel());
-
-                var response = await _httpClientAccessor.HttpClient.GetAsync(renderUrl, tokenSource.Token);
-
-                if (response.IsSuccessStatusCode)
+                httpResponse.GetTypedHeaders().CacheControl = new CacheControlHeaderValue()
                 {
-                    var html = await response.Content.ReadAsStringAsync();
-                    return (html, 200);
-                }
-                else
-                {
-                    return (response.ReasonPhrase, (int)response.StatusCode);
-                }
-            }
-        }
-
-        private void AddHttpCacheHeaders(HttpResponse httpResponse)
-        {
-            if (_options.HttpCacheMaxAge > TimeSpan.Zero)
-            {
-                httpResponse.GetTypedHeaders().CacheControl = _cacheControlHeaderValue;
-                httpResponse.Headers[HeaderNames.Vary] = _varyHeaders;
+                    Public = true,
+                    MaxAge = options.HttpCacheMaxAge
+                };
+                httpResponse.Headers[HeaderNames.Vary] = new string[] { "Accept-Encoding" };
             }
         }
     }

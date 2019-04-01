@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+  webapplication:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "80"
+
+  rendertron:
+    ports:
+      - "8080:3000"

@@ -1,27 +1,48 @@
 ﻿using AspNetCore.Rendertron;
+using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Net;
+using System.Net.Http;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
     public static class RendertronServiceCollectionExtensions
     {
-        public static IServiceCollection AddRendertron(this IServiceCollection serviceCollection)
+        public static IServiceCollection AddRendertron(
+            this IServiceCollection serviceCollection,
+            string rendertronUrl)
         {
-            serviceCollection.AddRendertron(null);
-            return serviceCollection;
+
+            return serviceCollection.AddRendertron(x =>
+            {
+                x.RendertronUrl = rendertronUrl;
+            });
         }
 
-        public static IServiceCollection AddRendertron(this IServiceCollection serviceCollection, Action<HttpClientAccessorOptions> setupAction)
+        public static IServiceCollection AddRendertron(
+            this IServiceCollection serviceCollection,
+            Action<RendertronOptions> configureOptions)
         {
-            if (serviceCollection == null)
-                throw new ArgumentNullException(nameof(serviceCollection));
+            serviceCollection.Configure(configureOptions);
 
-            var options = new HttpClientAccessorOptions();
-            setupAction?.Invoke(options);
+            serviceCollection
+                .AddHttpClient<IRendertronClient, RendertronClient>((provider, client) =>
+                {
+                    var options = provider.GetRequiredService<IOptionsMonitor<RendertronOptions>>().CurrentValue;
+                    client.Timeout = options.Timeout;
+                })
+                .ConfigurePrimaryHttpMessageHandler(provider =>
+                {
+                    var options = provider.GetRequiredService<IOptionsMonitor<RendertronOptions>>().CurrentValue;
+                    var handler = new HttpClientHandler();
 
-            serviceCollection.AddSingleton<IHttpClientAccessor>(new HttpClientAccessor(options));
+                    if (options.AcceptCompression)
+                    {
+                        handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                    }
+
+                    return handler;
+                });
 
             return serviceCollection;
         }
