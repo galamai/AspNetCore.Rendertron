@@ -2,6 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Description>ASP.net core middleware for GoogleChrome Rendertron.</Description>
+    <Copyright>Ievgen Galamai</Copyright>
+    <PackageId>Galamai.AspNetCore.Rendertron</PackageId>
+    <PackageLicenseUrl>https://github.com/galamai/AspNetCore.Rendertron/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/galamai/AspNetCore.Rendertron</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/galamai/AspNetCore.Rendertron</RepositoryUrl>
+    <PackageTags>asp.net core, rendertron</PackageTags>
+    <Authors>Ievgen Galamai</Authors>
+    <Company>Ievgen Galamai</Company>
+    <NeutralLanguage />
   </PropertyGroup>
 
   <ItemGroup>
