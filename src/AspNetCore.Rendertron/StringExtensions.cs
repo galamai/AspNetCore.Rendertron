@@ -8,7 +8,7 @@ namespace AspNetCore.Rendertron
             var startIndex = source.IndexOf(oldValueStart);
             var endIndex = source.IndexOf(oldValueEnd, startIndex);
             return source
-                .Remove(startIndex, endIndex - startIndex)
+                .Remove(startIndex, endIndex - startIndex + 1)
                 .Insert(startIndex, newValue);
         }
     }
